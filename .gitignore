@@ -48,3 +48,89 @@ data/
 # Node / Frontend
 node_modules/
 dist/
+# Environment & Secrets
+.env
+.env*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# App Data & Storage (architecture §4)
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.whl
+
+# Virtual envs
+venv/
+.venv/
+env/
+.env/
+
+# Environment
+.env
+*.local
+
+# Data (uploads, DB) — gitignored per architecture
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend (Vite)
+node_modules/
+dist/
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+# Logs
+*.log
+logs/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test / Coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+
+# Ruff / linters
+.ruff_cache/
+
