@@ -101,3 +101,4 @@ async def update_fact(
         "confirmed": fact.confirmed,
         "status": "updated",
     }
+

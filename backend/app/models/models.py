@@ -266,3 +266,4 @@ class ShareToken(Base):
     token_hash = Column(String(64), index=True, nullable=False)
     expires_at = Column(DateTime, nullable=True)
     scope = Column(String(50), default="read_only")
+

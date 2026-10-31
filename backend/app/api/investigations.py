@@ -193,3 +193,4 @@ async def archive_investigation(
     )
     await session.commit()
     return {"status": "archived", "id": inv.id}
+

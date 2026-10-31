@@ -62,3 +62,4 @@ async def test_b7_owner_isolation_404():
             # Ensure no data leak
             assert "Confidential Investigation A" not in resp.text
             assert "Target Corp" not in resp.text
+

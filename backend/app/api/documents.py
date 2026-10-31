@@ -226,3 +226,4 @@ async def get_document_facts(
         }
         for f in facts
     ]
+

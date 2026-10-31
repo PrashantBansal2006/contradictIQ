@@ -70,3 +70,4 @@ async def get_dashboard(
         "findings_summary": summary,
         "unresolved_queue": unresolved_queue,
     }
+

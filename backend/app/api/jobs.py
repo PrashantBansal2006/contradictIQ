@@ -51,3 +51,4 @@ async def stream_job_events(id: str):
             "X-Accel-Buffering": "no",
         },
     )
+
