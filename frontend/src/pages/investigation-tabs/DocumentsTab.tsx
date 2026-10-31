@@ -30,10 +30,6 @@ export const DocumentsTab: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-surface-border pb-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-mono text-blue-400 mb-1">
-            <FileText className="w-3.5 h-3.5" />
-            <span>ROUTE: /investigations/{id}/documents</span>
-          </div>
           <h1 className="text-xl font-bold text-white">Document Repository</h1>
           <p className="text-xs text-slate-400 mt-0.5">
             Uploaded regulatory filings, annual reports (PDF), and tables (CSV).
@@ -42,32 +38,31 @@ export const DocumentsTab: React.FC = () => {
 
         <button
           type="button"
-          className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition"
+          className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-primary hover:brightness-110 text-white text-xs font-medium transition"
         >
           <UploadCloud className="w-4 h-4" />
           <span>Upload Document</span>
         </button>
       </div>
 
-      {/* Documents List */}
       <div className="rounded-xl bg-surface border border-surface-border overflow-hidden">
         <div className="px-4 py-3 border-b border-surface-border text-xs font-semibold text-slate-300">
           Attached Documents ({placeholderDocs.length})
         </div>
         <div className="divide-y divide-surface-border">
           {placeholderDocs.map((doc) => (
-            <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-surface-hover/50 transition">
+            <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-primary/5 transition">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-mono text-xs">
+                <div className="w-8 h-8 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-mono text-xs">
                   {doc.mime.includes('pdf') ? 'PDF' : 'CSV'}
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-slate-200">{doc.filename}</h4>
                   <div className="flex items-center space-x-3 text-xs text-slate-400 mt-0.5">
                     <span>{doc.size}</span>
-                    <span>•</span>
-                    <span className="font-mono text-[11px] text-blue-400">Tier: {doc.source_tier}</span>
-                    <span>•</span>
+                    <span>·</span>
+                    <span className="font-mono text-[11px] text-primary">Tier: {doc.source_tier}</span>
+                    <span>·</span>
                     <span>{doc.fact_count} Extracted Facts</span>
                   </div>
                 </div>
@@ -79,7 +74,7 @@ export const DocumentsTab: React.FC = () => {
                 </span>
                 <Link
                   to={`/investigations/${id}/documents/${doc.id}`}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-surface border border-surface-border hover:border-blue-500/40 text-xs text-slate-300 hover:text-white transition"
+                  className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-surface border border-surface-border hover:border-primary/40 text-xs text-slate-300 hover:text-white transition"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>Viewer</span>

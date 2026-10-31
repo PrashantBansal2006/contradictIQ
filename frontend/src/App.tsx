@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 
+// Home Landing Page
+import { Home } from './pages/Home';
+
 // Auth Pages
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
@@ -32,9 +35,9 @@ export const App: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Main Application Shell */}
+        {/* Main Application Shell (Unified Navbar and Layout) */}
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Navigate to="/investigations" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/investigations" element={<InvestigationsList />} />
 
           {/* Investigation Shell & Tabs */}
