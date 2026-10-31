@@ -15,7 +15,7 @@ class GeminiProvider:
     """Google Gemini provider with JSON schema enforcement and retry logic."""
     def __init__(self, api_key: str | None = None, model: str | None = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("LLM_API_KEY")
-        self.model = model or os.getenv("LLM_MODEL", "gemini-2.5-flash-lite")
+        self.model = model or os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
         self._client = None
 
     @property
