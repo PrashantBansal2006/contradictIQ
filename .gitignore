@@ -1,3 +1,17 @@
+# Environment & Secrets
+.env
+.env*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# App Data & Storage (architecture §4)
 # Python
 __pycache__/
 *.py[cod]
@@ -28,6 +42,15 @@ data/
 *.sqlite
 *.sqlite3
 
+# Frontend (Vite)
+node_modules/
+dist/
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
 # Logs
 *.log
 logs/
