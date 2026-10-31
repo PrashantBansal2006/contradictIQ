@@ -8,9 +8,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.auth import router as auth_router
+from app.api.claims import router as claims_router
+from app.api.dashboard import router as dashboard_router
+from app.api.documents import router as documents_router
+from app.api.facts import router as facts_router
+from app.api.health import router as health_router
+from app.api.investigations import router as investigations_router
+from app.api.jobs import router as jobs_router
+from app.api.ledger import router as ledger_router
+from app.api.verify import router as verify_router
 from app.config import get_settings
 from app.db import Base, engine
-from app.api.health import router as health_router
+import app.models.models  # ensure models are registered with Base
 
 settings = get_settings()
 
@@ -39,21 +49,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(health_router, prefix="/api")
-
-# Future routers (added as phases complete):
-# from app.api import auth, investigations, documents, claims, verify, ledger, reports, eval, share, jobs
-# app.include_router(auth.router,            prefix="/api/auth",             tags=["auth"])
-# app.include_router(investigations.router,  prefix="/api/investigations",   tags=["investigations"])
-# app.include_router(documents.router,       prefix="/api",                  tags=["documents"])
-# app.include_router(claims.router,          prefix="/api",                  tags=["claims"])
-# app.include_router(verify.router,          prefix="/api",                  tags=["verify"])
-# app.include_router(ledger.router,          prefix="/api",                  tags=["ledger"])
-# app.include_router(reports.router,         prefix="/api",                  tags=["reports"])
-# app.include_router(eval.router,            prefix="/api/eval",             tags=["eval"])
-# app.include_router(share.router,           prefix="/api",                  tags=["share"])
-# app.include_router(jobs.router,            prefix="/api/jobs",             tags=["jobs"])
-
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(investigations_router, prefix="/api/investigations", tags=["investigations"])
+app.include_router(documents_router, prefix="/api", tags=["documents"])
+app.include_router(facts_router, prefix="/api", tags=["facts"])
+app.include_router(claims_router, prefix="/api", tags=["claims"])
+app.include_router(verify_router, prefix="/api", tags=["verify"])
+app.include_router(ledger_router, prefix="/api", tags=["ledger"])
+app.include_router(dashboard_router, prefix="/api", tags=["dashboard"])
+app.include_router(jobs_router, prefix="/api", tags=["jobs"])
