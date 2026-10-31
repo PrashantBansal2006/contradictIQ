@@ -1,3 +1,9 @@
+"""
+periods.py — Fiscal and calendar reporting periods, parsing, and algebra.
+
+Pure Python, deterministic, no I/O.
+Per architecture §8.2.
+"""
 import re
 from dataclasses import dataclass
 from typing import Literal
@@ -17,6 +23,7 @@ MONTHS: dict[str, int] = {
     "dec": 12, "december": 12,
 }
 
+
 @dataclass(frozen=True)
 class Period:
     """Fiscal or calendar reporting period per architecture §8.2."""
@@ -34,11 +41,13 @@ class Period:
             return f"FY{self.fy}-{self.kind}{self.idx}"
         return f"FY{self.fy}-{self.kind}"
 
+
 def _normalize_year(year_str: str) -> int:
     y = int(year_str)
     if y < 100:
         return 2000 + y
     return y
+
 
 def parse_period(text: str, default_fy_end_month: int = 3) -> Period:
     """
@@ -48,33 +57,33 @@ def parse_period(text: str, default_fy_end_month: int = 3) -> Period:
     s = text.strip()
 
     # 1. 'Q3 FY25' or 'Q3 FY2025' or 'Q3'
-    m_q = re.search(r"(?i)\bQ([1-4])\s*(?:(?:of\s+)?FY\s*(\d{2,4}))?\b", s)
+    m_q = re.search(r"(?i)\bQ([1-4])\s*(?:(?:of\s+)?FY\s*['’]?(\d{2,4}))?\b", s)
     if m_q and m_q.group(2):
         return Period(
             kind="Q",
             fy=_normalize_year(m_q.group(2)),
             idx=int(m_q.group(1)),
-            fy_end_month=default_fy_end_month
+            fy_end_month=default_fy_end_month,
         )
 
     # 2. 'H1 FY25' or 'H2 FY2024'
-    m_h = re.search(r"(?i)\bH([1-2])\s*(?:(?:of\s+)?FY\s*(\d{2,4}))?\b", s)
+    m_h = re.search(r"(?i)\bH([1-2])\s*(?:(?:of\s+)?FY\s*['’]?(\d{2,4}))?\b", s)
     if m_h and m_h.group(2):
         return Period(
             kind="H",
             fy=_normalize_year(m_h.group(2)),
             idx=int(m_h.group(1)),
-            fy_end_month=default_fy_end_month
+            fy_end_month=default_fy_end_month,
         )
 
     # 3. '9M FY25' or '9M FY2025'
-    m_9m = re.search(r"(?i)\b9M\s*(?:(?:of\s+)?FY\s*(\d{2,4}))?\b", s)
+    m_9m = re.search(r"(?i)\b9M\s*(?:(?:of\s+)?FY\s*['’]?(\d{2,4}))?\b", s)
     if m_9m and m_9m.group(1):
         return Period(
             kind="9M",
             fy=_normalize_year(m_9m.group(1)),
             idx=None,
-            fy_end_month=default_fy_end_month
+            fy_end_month=default_fy_end_month,
         )
 
     # 4. 'year ended 31 March 2025' or 'year ended 31 December 2024'
@@ -99,33 +108,53 @@ def parse_period(text: str, default_fy_end_month: int = 3) -> Period:
     if m_range:
         start_m = MONTHS.get(m_range.group(1).lower())
         end_m = MONTHS.get(m_range.group(2).lower())
-        end_year = int(m_range.group(3))
-        if start_m and end_m:
-            # Calculate quarter index based on fy_end_month
-            q_idx = ((end_m - (default_fy_end_month % 12) - 1) % 12) // 3 + 1
-            fy = end_year if end_m <= default_fy_end_month else end_year + 1
-            return Period(kind="Q", fy=fy, idx=q_idx, fy_end_month=default_fy_end_month)
+        cal_year = int(m_range.group(3))
 
-    # 7. Plain 'FY25' or 'FY2025'
-    m_fy = re.search(r"(?i)\bFY\s*(\d{2,4})\b", s)
+        if start_m and end_m:
+            if default_fy_end_month == 3:  # April - March fiscal year
+                q_map = {4: 1, 7: 2, 10: 3, 1: 4}
+                idx = q_map.get(start_m)
+                if idx is not None:
+                    fy = cal_year if start_m == 1 else cal_year + 1
+                    return Period(kind="Q", fy=fy, idx=idx, fy_end_month=3)
+            elif default_fy_end_month == 12:  # Calendar year fiscal year
+                q_map = {1: 1, 4: 2, 7: 3, 10: 4}
+                idx = q_map.get(start_m)
+                if idx is not None:
+                    return Period(kind="Q", fy=cal_year, idx=idx, fy_end_month=12)
+
+    # 7. 'FY2025' or 'FY25'
+    m_fy = re.search(r"(?i)\bFY\s*['’]?(\d{2,4})\b", s)
     if m_fy:
         return Period(
             kind="FY",
             fy=_normalize_year(m_fy.group(1)),
             idx=None,
-            fy_end_month=default_fy_end_month
+            fy_end_month=default_fy_end_month,
         )
 
-    raise ValueError(f"Could not parse period from: '{text}'")
+    # 8. Plain 4-digit year as FY fallback
+    m_plain = re.search(r"\b(20\d{2})\b", s)
+    if m_plain:
+        return Period(
+            kind="FY",
+            fy=int(m_plain.group(1)),
+            idx=None,
+            fy_end_month=default_fy_end_month,
+        )
+
+    raise ValueError(f"Unrecognized period format: '{text}'")
+
 
 def prev_year(p: Period) -> Period:
-    """Returns corresponding period in prior fiscal year."""
+    """Returns period one fiscal year prior."""
     return Period(
         kind=p.kind,
         fy=p.fy - 1,
         idx=p.idx,
-        fy_end_month=p.fy_end_month
+        fy_end_month=p.fy_end_month,
     )
+
 
 def prev_quarter(p: Period) -> Period:
     """Returns prior sequential quarter."""
@@ -134,6 +163,7 @@ def prev_quarter(p: Period) -> Period:
     if p.idx > 1:
         return Period(kind="Q", fy=p.fy, idx=p.idx - 1, fy_end_month=p.fy_end_month)
     return Period(kind="Q", fy=p.fy - 1, idx=4, fy_end_month=p.fy_end_month)
+
 
 def can_derive_fy(quarters: list[Period]) -> bool:
     """True if quarters contain Q1, Q2, Q3, and Q4 for the same FY."""
@@ -146,6 +176,7 @@ def can_derive_fy(quarters: list[Period]) -> bool:
             fy_groups.setdefault(key, set()).add(q.idx)
     return any(idxs.issuperset({1, 2, 3, 4}) for idxs in fy_groups.values())
 
+
 def derive_fy(quarters: list[Period]) -> Period:
     """Derives FY Period from 4 quarters."""
     for q in quarters:
@@ -156,6 +187,7 @@ def derive_fy(quarters: list[Period]) -> Period:
                 return Period(kind="FY", fy=q.fy, idx=None, fy_end_month=q.fy_end_month)
     raise ValueError("Cannot derive FY: Missing quarters.")
 
+
 def can_derive_h1(quarters: list[Period]) -> bool:
     """True if quarters contain Q1 and Q2 for the same FY."""
     fy_groups: dict[tuple[int, int], set[int]] = {}
@@ -163,6 +195,7 @@ def can_derive_h1(quarters: list[Period]) -> bool:
         if q.kind == "Q" and q.idx is not None:
             fy_groups.setdefault((q.fy, q.fy_end_month), set()).add(q.idx)
     return any(idxs.issuperset({1, 2}) for idxs in fy_groups.values())
+
 
 def derive_h1(quarters: list[Period]) -> Period:
     """Derives H1 Period from Q1 and Q2."""
@@ -174,6 +207,7 @@ def derive_h1(quarters: list[Period]) -> Period:
                 return Period(kind="H", fy=q.fy, idx=1, fy_end_month=q.fy_end_month)
     raise ValueError("Cannot derive H1: Missing Q1 or Q2.")
 
+
 def can_derive_9m(quarters: list[Period]) -> bool:
     """True if quarters contain Q1, Q2, and Q3 for the same FY."""
     fy_groups: dict[tuple[int, int], set[int]] = {}
@@ -181,6 +215,7 @@ def can_derive_9m(quarters: list[Period]) -> bool:
         if q.kind == "Q" and q.idx is not None:
             fy_groups.setdefault((q.fy, q.fy_end_month), set()).add(q.idx)
     return any(idxs.issuperset({1, 2, 3}) for idxs in fy_groups.values())
+
 
 def derive_9m(quarters: list[Period]) -> Period:
     """Derives 9M Period from Q1, Q2, and Q3."""

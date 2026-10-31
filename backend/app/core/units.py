@@ -1,6 +1,12 @@
-import re
+"""
+units.py — Normalization of money, scales, currency, and percentages.
+
+Pure Python, deterministic, no I/O.
+Per architecture §8.1.
+"""
 from dataclasses import dataclass
 from decimal import Decimal
+import re
 
 # Scale multipliers per architecture §8.1
 SCALE_FACTORS: dict[str, Decimal] = {
@@ -24,6 +30,8 @@ SCALE_FACTORS: dict[str, Decimal] = {
     "billion": Decimal("1000000000"),
     "billions": Decimal("1000000000"),
 }
+
+SCALE = SCALE_FACTORS
 
 SCALE_CANONICAL: dict[str, str] = {
     "unit": "unit",
@@ -63,22 +71,32 @@ CURRENCY_MAP: dict[str, str] = {
     "jpy": "JPY",
 }
 
+
 @dataclass(frozen=True)
 class ParsedValue:
     """Normalized numeric value with currency, scale, and stated precision."""
-    raw: str
     value: Decimal         # Normalized value in base units
-    raw_number: Decimal    # Stated number before scaling
-    unit: str              # "currency", "percent", or "number"
-    scale: str             # Canonical scale ("unit", "thousand", "crore", etc.)
-    currency: str | None   # ISO code ("INR", "USD", etc.) or None
-    precision: int         # Decimal places in the stated number
-    is_negative: bool
+    raw: str = ""
+    raw_number: Decimal = Decimal("0")  # Stated number before scaling
+    unit: str = "number"   # "currency", "percent", or "number"
+    scale: str = "unit"    # Canonical scale ("unit", "thousand", "crore", etc.)
+    currency: str | None = None  # ISO code ("INR", "USD", etc.) or None
+    precision: int = 0     # Decimal places in the stated number
+    is_negative: bool = False
+
+    @property
+    def raw_text(self) -> str:
+        return self.raw
+
+    @property
+    def stated_value(self) -> Decimal:
+        return self.raw_number if not self.is_negative else -self.raw_number
+
 
 def parse_value(
     text: str,
     default_currency: str | None = None,
-    default_scale: str | None = None
+    default_scale: str | None = None,
 ) -> ParsedValue:
     """
     Parses money and percent strings (e.g. '₹340 cr', '$4.2B', '(1,234)', '12.5%').
@@ -145,5 +163,8 @@ def parse_value(
         scale=scale,
         currency=currency,
         precision=precision,
-        is_negative=is_neg
+        is_negative=is_neg,
     )
+
+
+parse_money_or_percent = parse_value
