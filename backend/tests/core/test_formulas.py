@@ -162,3 +162,4 @@ def test_opex_ratio_zero_opex():
 def test_opex_ratio_zero_revenue_error():
     with pytest.raises(DivisionByZeroError):
         opex_ratio(operating_expenses=Decimal("200"), revenue=Decimal("0"))
+

@@ -115,3 +115,4 @@ def test_absolute_value_tolerance():
     )
     # half_ulp = 0.5 * 10,000,000 = 5,000,000
     assert tol == Decimal("5000000")
+

@@ -169,3 +169,4 @@ def test_same_tier_disagreement_detection():
     assert res.blocked is True
     assert res.same_tier_disagreement is True
     assert REASON_SOURCE_DISAGREEMENT in res.reasons
+
