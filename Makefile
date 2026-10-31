@@ -61,3 +61,4 @@ clean:
 	if exist data\app.db del /f data\app.db
 	if exist data\uploads rmdir /s /q data\uploads
 	$(PYTEST) --cache-clear -q || true
+

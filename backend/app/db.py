@@ -61,3 +61,4 @@ async def get_session() -> AsyncSession:  # type: ignore[return]
         except Exception:
             await session.rollback()
             raise
+
