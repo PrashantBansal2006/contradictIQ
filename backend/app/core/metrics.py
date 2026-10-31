@@ -1,140 +1,174 @@
 """
-metrics.py — Metric registry, synonyms, and additivity properties.
+metrics.py — Metric registry, synonyms, fuzzy matching, and additivity properties.
 
 Pure Python, deterministic, no I/O.
 Per architecture §9.
 """
-from dataclasses import dataclass, field
 import re
+import difflib
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
 class Metric:
-    additive: bool = True
-    synonyms: list[str] = field(default_factory=list)
+    """Metric metadata registry per architecture §9."""
+    canonical: str = ""
+    additive: bool = True  # Flow metrics are additive across quarters; stock metrics are not
+    synonyms: tuple[str, ...] = ()
     derivable_from: tuple[str, ...] | None = None
 
 
 METRICS: dict[str, Metric] = {
     "revenue": Metric(
+        canonical="revenue",
         additive=True,
-        synonyms=[
-            "revenue",
+        synonyms=(
             "net sales",
             "turnover",
             "total income from operations",
             "revenue from operations",
             "sales",
             "total revenue",
-        ],
+            "revenue",
+        ),
     ),
     "cogs": Metric(
+        canonical="cogs",
         additive=True,
-        synonyms=[
-            "cogs",
+        synonyms=(
             "cost of goods sold",
             "cost of materials consumed",
             "cost of sales",
-        ],
+            "cogs",
+        ),
     ),
     "gross_profit": Metric(
+        canonical="gross_profit",
         additive=True,
-        synonyms=["gross profit", "gross income"],
         derivable_from=("revenue", "cogs"),
+        synonyms=("gross profit", "gross income"),
     ),
     "operating_expenses": Metric(
+        canonical="operating_expenses",
         additive=True,
-        synonyms=[
-            "operating expenses",
+        synonyms=(
             "opex",
             "operating costs",
             "total operating expenses",
-        ],
+            "operating expenses",
+        ),
     ),
     "operating_income": Metric(
+        canonical="operating_income",
         additive=True,
-        synonyms=["operating income", "ebit", "operating profit", "operating earnings"],
         derivable_from=("revenue", "operating_expenses"),
+        synonyms=(
+            "ebit",
+            "operating profit",
+            "operating income",
+            "operating earnings",
+        ),
     ),
     "ebitda": Metric(
+        canonical="ebitda",
         additive=True,
-        synonyms=["ebitda", "operating profit before depreciation"],
+        synonyms=("ebitda", "operating profit before depreciation"),
     ),
     "net_income": Metric(
+        canonical="net_income",
         additive=True,
-        synonyms=[
-            "net income",
+        synonyms=(
             "profit after tax",
             "pat",
             "net profit",
+            "net income",
             "profit for the period",
+            "profit for the year",
             "net earnings",
-        ],
+        ),
     ),
     "total_expenses": Metric(
+        canonical="total_expenses",
         additive=True,
-        synonyms=["total expenses", "expenses"],
+        synonyms=("total expenses", "expenses"),
     ),
-    # Stock metrics (non-additive across time)
+    # Stock metrics (non-additive across time per architecture §8.2)
     "total_debt": Metric(
+        canonical="total_debt",
         additive=False,
-        synonyms=["total debt", "debt", "borrowings", "total borrowings"],
+        synonyms=("total debt", "debt", "borrowings", "total borrowings"),
     ),
     "total_assets": Metric(
+        canonical="total_assets",
         additive=False,
-        synonyms=["total assets", "assets"],
+        synonyms=("total assets", "assets"),
     ),
     "cash": Metric(
+        canonical="cash",
         additive=False,
-        synonyms=["cash", "cash and cash equivalents"],
+        synonyms=("cash", "cash and cash equivalents"),
     ),
 }
 
+# Ambiguous bare labels per architecture §9 that must return unmapped (None)
+AMBIGUOUS_LABELS: set[str] = {
+    "income",
+    "profit",
+    "expenses",
+}
 
-def normalize_text(text: str) -> str:
-    """Normalize text by lowercasing and standardizing spaces/punctuation."""
-    lowered = text.lower().strip()
-    return re.sub(r"[\s\-_]+", " ", lowered)
+
+def _clean_label(label: str) -> str:
+    """Normalizes label text by lowercasing and collapsing whitespace/punctuation."""
+    s = label.lower().strip()
+    s = re.sub(r"[^\w\s]", " ", s)
+    return " ".join(s.split())
 
 
-def canonicalize_metric(label: str) -> str | None:
+def match_metric(label: str, threshold: float = 0.90) -> str | None:
     """
-    Resolve a raw metric label to its canonical metric name.
-    1. Exact canonical name match
-    2. Synonym match
-    3. Token-set fuzzy match (all tokens of synonym in label or vice versa)
-    Ambiguous / unmapped returns None.
+    Matches raw table or text labels to canonical metric names.
+    Follows: Ambiguous check -> Exact match -> Synonym match -> Fuzzy match (>=0.90).
+    Returns canonical metric key or None (unmapped).
     """
-    cleaned = normalize_text(label)
+    cleaned = _clean_label(label)
+    if not cleaned:
+        return None
 
-    # 1. Direct canonical match
+    # Ambiguous label check per spec
+    if cleaned in AMBIGUOUS_LABELS:
+        return None
+
+    # 1. Exact canonical match
     if cleaned in METRICS:
         return cleaned
 
     # 2. Exact synonym match
-    for canonical_name, metric_obj in METRICS.items():
-        for syn in metric_obj.synonyms:
-            if cleaned == normalize_text(syn):
-                return canonical_name
+    for canonical, metric in METRICS.items():
+        cleaned_syns = [_clean_label(syn) for syn in metric.synonyms]
+        if cleaned in cleaned_syns or cleaned == canonical:
+            return canonical
 
-    # 3. Token-based matching
-    cleaned_tokens = set(cleaned.split())
-    for canonical_name, metric_obj in METRICS.items():
-        for syn in metric_obj.synonyms:
-            syn_tokens = set(normalize_text(syn).split())
-            if syn_tokens == cleaned_tokens:
-                return canonical_name
-            # If label contains the complete multi-word synonym (e.g. "our revenue from operations is...")
-            if len(syn_tokens) > 1 and syn_tokens.issubset(cleaned_tokens):
-                return canonical_name
+    # 3. Token-set fuzzy match (>= threshold)
+    best_match: str | None = None
+    best_score: float = 0.0
 
-    # Ambiguous names like "income" without qualifier return None
-    return None
+    for canonical, metric in METRICS.items():
+        for syn in metric.synonyms:
+            ratio = difflib.SequenceMatcher(None, cleaned, _clean_label(syn)).ratio()
+            if ratio >= threshold and ratio > best_score:
+                best_score = ratio
+                best_match = canonical
+
+    return best_match
+
+
+canonicalize_metric = match_metric
 
 
 def is_additive(metric_name: str) -> bool:
     """Check if metric can be summed across quarters into an annual total."""
-    canonical = canonicalize_metric(metric_name) or metric_name
+    canonical = match_metric(metric_name) or metric_name
     metric_obj = METRICS.get(canonical)
     if metric_obj is not None:
         return metric_obj.additive
