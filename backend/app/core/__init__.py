@@ -5,7 +5,7 @@ This package contains the pure-Python, deterministic verification engine.
 No I/O, no network, no LLM dependencies.
 """
 
-from app.core.decide import (
+from .decide import (
     ENGINE_VERSION,
     engine_version,
     decide,

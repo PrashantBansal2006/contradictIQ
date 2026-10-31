@@ -3,6 +3,7 @@ import json
 import time
 from typing import Any
 from backend.app.llm.base import LLMProvider
+from backend.app.llm.cache import compute_cache_key, get_cached_response, set_cached_response
 
 class NoneProvider:
     """Deterministic fallback provider when LLM is disabled or unavailable."""
@@ -12,7 +13,7 @@ class NoneProvider:
         return None
 
 class GeminiProvider:
-    """Google Gemini provider with JSON schema enforcement and retry logic."""
+    """Google Gemini provider with JSON schema enforcement, retry logic, and SQLite cache."""
     def __init__(self, api_key: str | None = None, model: str | None = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("LLM_API_KEY")
         self.model = model or os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
@@ -31,6 +32,12 @@ class GeminiProvider:
         if not self.api_key or not self.client:
             return None
 
+        # Architecture §7.1: SQLite prompt cache lookup
+        cache_key = compute_cache_key("gemini", self.model, system, user)
+        cached = get_cached_response(cache_key)
+        if cached is not None:
+            return cached
+
         from google.genai import types
 
         # Architecture §7.1: 2 retry attempts with backoff on failure
@@ -47,7 +54,9 @@ class GeminiProvider:
                     ),
                 )
                 if response and response.text:
-                    return json.loads(response.text)
+                    parsed = json.loads(response.text)
+                    set_cached_response(cache_key, "gemini", self.model, system, user, parsed)
+                    return parsed
             except Exception:
                 if attempt == 0:
                     time.sleep(1.0)
@@ -62,4 +71,3 @@ def get_llm_provider() -> LLMProvider:
     if provider_name == "gemini" and api_key:
         return GeminiProvider(api_key=api_key)
     return NoneProvider()
-

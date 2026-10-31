@@ -5,30 +5,39 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --primary: #e80078;
+    --primary-glow: rgba(232, 0, 120, 0.25);
   }
 
   body {
-    background-color: #0a0d14;
+    background-color: #080a0f;
     color: #f1f5f9;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
   }
 }
 
-/* Custom sleek scrollbar for financial intelligence UI */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Glassmorphic backdrop blur across all cards & panels */
+.bg-surface,
+[class*="bg-surface"] {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-::-webkit-scrollbar-track {
-  background: #0a0d14;
+/* Cursor reveal mask - monochrome visible in circular spotlight where cursor moves */
+.bg-reveal-mono {
+  -webkit-mask-image: radial-gradient(circle 140px at var(--cx, -500px) var(--cy, -500px), black 0%, black 75%, transparent 100%);
+  mask-image: radial-gradient(circle 140px at var(--cx, -500px) var(--cy, -500px), black 0%, black 75%, transparent 100%);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
-}
+/* Thin cyberpunk scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(8, 10, 15, 0.3); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #e80078; }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+/* Focus ring using primary magenta */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(232, 0, 120, 0.5);
 }
